@@ -45,7 +45,7 @@ class SlaveHandler:
 
 
 class BreakRoom:
-    def __init__(self, hash_to_break, port):
+    def __init__(self, hash_to_break, port,host):
         self.result = ""
         self.hash_to_break = hash_to_break
 
@@ -80,7 +80,8 @@ class BreakRoom:
         self.slave_sockets = []
 
         self.master_socket = socket.socket()
-        self.host = socket.gethostname()
+        self.host = host
+        print(self.host)
         self.port = port
         self.master_socket.bind((self.host, self.port))
 
@@ -120,4 +121,4 @@ class BreakRoom:
 
 
 if __name__ == '__main__':
-    BreakRoom(str(sys.argv[1]), 12356)
+    BreakRoom(str(sys.argv[3]), int(sys.argv[2]),sys.argv[1])

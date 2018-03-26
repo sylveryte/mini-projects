@@ -1,6 +1,7 @@
 import hashlib
 import socket  # Import socket module
 import threading
+import sys
 from itertools import chain, product
 
 import time
@@ -91,4 +92,4 @@ class Slave:
 
 
 if __name__ == '__main__':
-    Slave(socket.gethostname(), 12356)
+    Slave(sys.argv[1],int(sys.argv[2]))
