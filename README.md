@@ -1,9 +1,11 @@
-Mini Projects
+# Mini Projects
 
-## OS `sh script to create html+css system report`
+## OS 
+	sh script to create html+css system report
 **How to run**
 1. Read os/report.sh
-## NPL `distributed sha1 password cracker`
+## NPL 
+	distributed sha1 password cracker
 **How to run**
 
 tip: get sha1 code from [here](http://www.sha1-online.com/)(make sure to use lenght of string 6 or less)
@@ -14,4 +16,5 @@ tip: get sha1 code from [here](http://www.sha1-online.com/)(make sure to use len
 1. from pc2..n run slave
 	- syntax : `python3 slave.py [master ip addr] [master port]`
 	- eg     : `python3 slave.py 192.168.1.105 9987`
+
 
