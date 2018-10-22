@@ -23,6 +23,7 @@ class Slave:
         self.slave_socket.settimeout(41.0)
 
         self.limit=3
+        self.hard=5
         
         self.addr=(host,int(port))
 
@@ -45,8 +46,9 @@ class Slave:
         self.slave_socket.sendto(("res:"+res).encode(),self.addr)
 
     def send_r(self):
-        print("Sending requesting job")
-        self.slave_socket.sendto(b'job',self.addr)
+        if len(self.tasks)<3:
+            print("Sending job request")
+            self.slave_socket.sendto(b'job',self.addr)
 
     def conn(self):
         while True:
@@ -55,7 +57,6 @@ class Slave:
                 data, server = self.slave_socket.recvfrom(1024)
                 data =  data.decode().split(":")
                 self.handlejob(data)
-                #print("sleeping for 20 sec")
                 time.sleep(2)
             except socket.timeout:
                 pass
@@ -72,14 +73,14 @@ class Slave:
                     self.send_res(res[2])
                     self.tasks=[]
             #print("working")
-            time.sleep(5)
 
     def break_code(self, length=1):
         """
         just a tool of slave
         """
-        print("/ breaking {} with {}".format(self.to_break,self.task))
+        #print("/ breaking {} with {}".format(self.to_break,self.task))
         print("/ ")
+        time.sleep(self.hard)
         for guess in brute_force(self.task, length):
             if get_sha1(guess) == self.to_break:
                 return "pass:" + self.to_break + ':' + guess

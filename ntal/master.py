@@ -10,7 +10,6 @@ class BreakRoom:
         self.code=code
         self.the_queue = []
         self._generate_new_queue()
-        print(len(self.the_queue))
 
         threading.Thread(name="comm", target=self.comm).start()
 
@@ -24,17 +23,15 @@ class BreakRoom:
 
     def comm(self):
         while True:
-            rand = random.randint(0, 10)
             m, address = self.server_socket.recvfrom(1024)
             #print("What"+str(message)+"   "+str(address))
             m=m.decode().split(":")
             if m[0] == 'job':
                 self.server_socket.sendto(self.gettask(),address)
+                print(address)
             elif m[0] == 'res':
                 print("GOT RESULT : {}".format(m[1]))
                 break
-            if rand >= 4:
-                self.server_socket.sendto(b'helllllllllok', address)
         
     
     def _generate_new_queue(self):
