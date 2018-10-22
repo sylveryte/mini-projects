@@ -1,3 +1,4 @@
+import time
 import hashlib
 import socket  # Import socket module
 import threading
@@ -16,99 +17,68 @@ def brute_force(charset, maxlength):
 def get_sha1(s):
     return hashlib.sha1(s.encode('utf-8')).hexdigest()
 
-
 class Slave:
-    """
-    receives  : 1 q                     #kill
-                2 rest                  #wait for instruction kill current task
-                3 job:[to_break]:[task] #new job for
-
-    responds  : 1 fail                        #no result
-                2 pass:[job]:[decrypted str]  #result
-                3 probe                       #probes when free [prober]
-    """
-
     def __init__(self, host, port):
-        self.limit = 2
-        self.slave_socket = socket.socket()
-        print("Connecting to {} on port {}".format(host, port))
+        self.slave_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.slave_socket.settimeout(41.0)
+
+        self.limit=3
+        
+        self.addr=(host,int(port))
 
         self.tasks = []
         self.task = ""
         self.to_break = ""
-        self.slave_socket.connect((host, port))
-        self.slave_socket.setblocking(0)
-        self.slave_socket.settimeout(1)
-        threading.Thread(target=self.connection_manager).start()
-        
-    def connection_manager(self):
-        waiter_thread = threading.Thread(target=self.waiter)
-        executioner_thread = threading.Thread(target=self.executioner)
-        prober_thread = threading.Thread(target=self.prober)
-        waiter_thread.start()
-        executioner_thread.start()
-        prober_thread.start()
-        prober_thread.join()
-        waiter_thread.join()
-        executioner_thread.join()
-        self.slave_socket.close()
 
-    def prober(self):
-        """
-        probes master when free by sending 'probe'
-        :return:
-        """
-        # print("prober in")
-        while True:
-            time.sleep(3)
-            if len(self.tasks) <1:
-                self.slave_socket.send("probe".encode())
-                self.busy = True
-                #print("probed!")
+        threading.Thread(target=self.conn).start()
+        threading.Thread(target=self.work).start()
 
+    def handlejob(self,data):
+        if data[0] == "job":
+            self.tasks.append((data[1],data[2]))
+            print("Job accepted {} {}".format(data[1],data[2]))
+        else:
+            print("Job rejected {}".format(str(data)))
 
-    def waiter(self):
-        """
-        receiver
-        """
+    def send_res(self,res):
+        print("Sending result [{}]".format(res))
+        self.slave_socket.sendto(("res:"+res).encode(),self.addr)
+
+    def send_r(self):
+        print("Sending requesting job")
+        self.slave_socket.sendto(b'job',self.addr)
+
+    def conn(self):
         while True:
             try:
-               reply = self.slave_socket.recv(1024).decode().strip().split(":")
-               if reply[0] == "job":
-                    self.tasks.append(reply[1]+":"+reply[2])
-                    print("********************\nNew job received : {}".format(reply[1]+":"+reply[2]))
-                # print(reply)
+                self.send_r()
+                data, server = self.slave_socket.recvfrom(1024)
+                data =  data.decode().split(":")
+                self.handlejob(data)
+                #print("sleeping for 20 sec")
+                time.sleep(2)
             except socket.timeout:
                 pass
-        print("Receiver down")
-
-    def executioner(self):
-        """
-        responder
-        """
+   
+    def work(self):
         while True:
-                # print("BREAKING {} with {}".format(self.to_break, self.task))
-
-                if len(self.tasks) > 0:
-                    # rsa decode and then assign to self.task and self.to_break
-                    tk=self.tasks.pop()
-                    tk=tk.split(":")
-                    self.task=tk[1]
-                    self.to_break=tk[0]
-                    print("---/ breaking {} with {}".format(self.to_break,self.task))
-                    response = self.break_code()
-                    time.sleep(37)
-                    print("RESPONSE ({}) for BREAKING {} with {}".format(response, self.to_break, self.task))
-                    if response:
-                        self.slave_socket.send(response.rstrip().encode())
-                time.sleep(3)
-        print("Receiver down")
+            if len(self.tasks):
+                d=self.tasks.pop()
+                self.to_break=d[0]
+                self.task=d[1]
+                res=self.break_code()
+                res=res.split(":")
+                if res[0]=="pass":
+                    self.send_res(res[2])
+                    self.tasks=[]
+            #print("working")
+            time.sleep(5)
 
     def break_code(self, length=1):
         """
         just a tool of slave
         """
-        #print("/ breaking {} with {}".format(self.to_break,self.task))
+        print("/ breaking {} with {}".format(self.to_break,self.task))
         print("/ ")
         for guess in brute_force(self.task, length):
             if get_sha1(guess) == self.to_break:
@@ -119,6 +89,6 @@ class Slave:
         else:
             return self.break_code(length + 1)
 
-
 if __name__ == '__main__':
     Slave(sys.argv[1], int(sys.argv[2]))
+
