@@ -35,10 +35,10 @@ def get_sha1(s):
 class Slave:
     def __init__(self, host, port):
         self.slave_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.slave_socket.settimeout(41.0)
+        self.slave_socket.settimeout(5.0)
 
-        self.limit=3
-        self.hard=5
+        self.limit=2
+        self.hard=1
         
         self.addr=(host,int(port))
 
@@ -51,6 +51,9 @@ class Slave:
         self.task = ""
         self.to_break = ""
 
+        self.blocked_ip=[]
+        self.data_store=[]
+
         threading.Thread(target=self.conn).start()
         threading.Thread(target=self.work).start()
 
@@ -60,24 +63,35 @@ class Slave:
         self.slave_socket.sendto(("auth:"+str(encrypt(str(self.rand)))).encode(),server)
     
     def authenticate(self,auth,server):
+        ip,p=server
         if int(auth) == self.rand:
             self.rand=0
-            print("Server authenticated : "+str(server))
-            self.trusted.append(server)
-            self.handlejob(self.data,server)
+            print("Server IP {} authenticated".format(ip))
+            self.blocked_ip.remove(ip)
+        else:
+            print("Server IP {} is blocked".format(ip))
+            self.blocked_ip.append(ip)
 
 
     def handlejob(self,data,server):
-        if data[0] == "auth":
-            self.authenticate(data[1],server)
-        if server in self.trusted:
-            if data[0] == "job":
+        if data[0] == "job":
                 self.tasks.append((data[1],data[2]))
                 print("Job accepted {} {}".format(data[1],data[2]))
         else:
-            print("Job rejected {}".format(str(data)))
+            print("Job rejected {}".format(data))
+
+    def ad(self,data,server):
+        ip,p=server
+        if ip in self.blocked_ip:
+            return False
+        if data in self.data_store:
+            print("Anamoly detected!!!!! Challenging Server {}".format(ip))
+            print("Server IP {} is blocked".format(ip))
+            self.blocked_ip.append(ip)
             self.challenge(server)
-            self.data=data
+            return False
+        self.data_store.append(data)
+        return True
 
     def send_res(self,res):
         print("Sending result [{}]".format(res))
@@ -94,7 +108,10 @@ class Slave:
                 self.send_r()
                 data, server = self.slave_socket.recvfrom(1024)
                 data =  data.decode().split(":")
-                self.handlejob(data,server)
+                if data[0] == "auth":
+                    self.authenticate(data[1],server)
+                elif self.ad(data,server):
+                    self.handlejob(data,server)
                 time.sleep(2)
             except socket.timeout:
                 pass
