@@ -112,7 +112,7 @@ void write_png_file(char *filename) {
 void smooth_png_file() {
 	int heightt=height-mask;
 	int widtht=width-mask;
-printf("\nmask=%d\n",mask);
+//printf("\nmask=%d\n",mask);
 //radius calc and average divider
 		
 		 int rs=((-1)*mask);
@@ -147,7 +147,7 @@ printf("\nmask=%d\n",mask);
     //printf("%4d, %4d = RGBA(%3d, %3d, %3d, %3d) row=\n", x, y, px[0], px[1], px[2], px[3]);
     }
   }
-      printf("\nHeight=%d, Width=%d\n",height,width);
+      //printf("\nHeight=%d, Width=%d\n",height,width);
 }
 
 int main(int argc, char *argv[]) {
